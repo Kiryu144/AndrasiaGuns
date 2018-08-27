@@ -1,0 +1,9 @@
+name: AndrasiaGuns
+version: 1.0
+author: Kiryu144
+website: www.andrasia.net
+main: net.andrasia.kiryu144.andrasiaguns.Main
+commands:
+  ag:
+   description: Desc
+   usage: This is de wae
