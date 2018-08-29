@@ -5,25 +5,22 @@ import net.andrasia.kiryu144.andrasiaguns.event.PlayerShotEntityEvent;
 import net.andrasia.kiryu144.andrasiaguns.event.PlayerShotKilledEvent;
 import net.andrasia.kiryu144.andrasiaguns.external.NBTEditor;
 import net.andrasia.kiryu144.andrasiaguns.input.Keyboard;
-import net.andrasia.kiryu144.kiryucore.console.KiryuLogger;
 import org.bukkit.Bukkit;
-import org.bukkit.Particle;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
-import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.player.PlayerBedLeaveEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.Material;
-import org.bukkit.material.MaterialData;
 
 import java.util.HashMap;
 
@@ -53,6 +50,10 @@ public class GunManager implements Listener {
 
     public static GunContainer getGunContainer() {
         return guns;
+    }
+
+    public static boolean isScoped(Player p){
+        return scoped.get(p);
     }
 
     @EventHandler
@@ -99,17 +100,27 @@ public class GunManager implements Listener {
             }
 
             if(!scoped.containsKey(e.getPlayer())){
-                scoped.put(e.getPlayer(), true);
+                scoped.put(e.getPlayer(), false);
+            }
+
+            boolean isScoped = !scoped.get(e.getPlayer());
+            scoped.put(e.getPlayer(), isScoped);
+            if(isScoped){
+                e.getPlayer().getInventory().setItemInMainHand(gun.getTemplateItemAimed());
             }else{
-                boolean isScoped = !scoped.get(e.getPlayer());
-                scoped.put(e.getPlayer(), isScoped);
-                if(isScoped){
-                    e.getPlayer().getInventory().setItemInMainHand(gun.getItemStackAimed());
-                }else{
-                    e.getPlayer().getInventory().setItemInMainHand(gun.getItemStack());
-                }
+                e.getPlayer().getInventory().setItemInMainHand(gun.getTemplateItemNormal());
             }
         }
+    }
+
+    @EventHandler
+    private static void onPlayerJoin(PlayerJoinEvent e){
+        scoped.put(e.getPlayer(), false);
+    }
+
+    @EventHandler
+    private static void onPlayerLeave(PlayerQuitEvent e){
+        scoped.remove(e.getPlayer());
     }
 
 }

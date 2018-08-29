@@ -1,6 +1,5 @@
 package net.andrasia.kiryu144.andrasiaguns.guns;
 
-import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 
