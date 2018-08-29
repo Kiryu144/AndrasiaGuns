@@ -30,10 +30,10 @@ public class Main extends JavaPlugin {
         if(cmd.getName().equalsIgnoreCase("ag")) {
             if(args.length == 2){
                 if(args[0].equalsIgnoreCase("give")){
-                    ((Player) sender).getInventory().addItem(GunManager.getGunContainer().get(Integer.valueOf(args[1])).getTemplateItemNormal());
+                    ((Player) sender).getInventory().addItem(GunManager.getGun(Integer.valueOf(args[1])).getTemplateItemNormal());
                 }
                 if(args[0].equalsIgnoreCase("reload")){
-                    GunManager.getGunContainer().get(Integer.valueOf(args[1])).initiateReload(((Player) sender));
+                    GunManager.getGun(Integer.valueOf(args[1])).initiateReload(((Player) sender));
                     sender.sendMessage("Reloading ..");
                 }
             }

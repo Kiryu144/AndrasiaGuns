@@ -1,5 +1,6 @@
 package net.andrasia.kiryu144.andrasiaguns.guns;
 
+import java.util.Collection;
 import java.util.HashMap;
 
 public class GunContainer {
@@ -21,5 +22,9 @@ public class GunContainer {
 
     public Gun get(String name){
         return names.get(name);
+    }
+
+    public Collection<Gun> getGuns() {
+        return guns.values();
     }
 }

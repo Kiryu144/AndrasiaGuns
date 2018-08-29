@@ -14,7 +14,7 @@ import org.bukkit.Location;
 
 import java.util.HashMap;
 
-public class Gun {
+public class Gun implements ActivePlayerList {
     private HashMap<Player, GunPlayerData> playerSpecificData = new HashMap<>();
 
     private String displayName;
@@ -89,9 +89,6 @@ public class Gun {
 
     public boolean canShoot(Player p){
         GunPlayerData data = playerSpecificData.get(p);
-        if(data == null){
-            playerSpecificData.put(p, new GunPlayerData());
-        }
         long current = System.currentTimeMillis();
         if(current - data.getLastShot() > this.delay){
             if(current - data.getTimeoutStart() > data.getTimeout()){
@@ -128,7 +125,7 @@ public class Gun {
 
     public void handleShooting(Player p){
         if(this.canShoot(p)){
-            Location startLocation = this.getStartingLocation(p, GunManager.isScoped(p));
+            Location startLocation = this.getStartingLocation(p, GunManager.isPlayerScoped(p));
             Projectile bullet = startLocation.getWorld().spawn(startLocation, Snowball.class);
             int bulletId = BulletDatabase.addBullet(new BulletData(bullet, p, this, this.damage));
 
@@ -141,6 +138,15 @@ public class Gun {
         }
     }
 
+    @Override
+    public void registerPlayer(Player p) {
+        playerSpecificData.put(p, new GunPlayerData());
+    }
+
+    @Override
+    public void unregisterPlayer(Player p) {
+        playerSpecificData.remove(p);
+    }
 }
 
 
