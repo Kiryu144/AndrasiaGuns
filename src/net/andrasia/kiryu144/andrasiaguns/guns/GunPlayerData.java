@@ -6,6 +6,7 @@ public class GunPlayerData {
     private long timeout = 0;
 
     private int ammoLeft = 0;
+    private int totalAmmoLeft = 0;
 
     public GunPlayerData() {
         lastShot = 0;
@@ -48,5 +49,17 @@ public class GunPlayerData {
 
     public void startTimeout(){
         this.timeoutStart = System.currentTimeMillis();
+    }
+
+    public boolean isInTimeout(){
+        return (System.currentTimeMillis() - timeoutStart) < timeout;
+    }
+
+    public int getTotalAmmoLeft() {
+        return totalAmmoLeft;
+    }
+
+    public void setTotalAmmoLeft(int totalAmmoLeft) {
+        this.totalAmmoLeft = totalAmmoLeft;
     }
 }

@@ -16,4 +16,8 @@ public class BulletDatabase {
     public static BulletData getBullet(int id){
         return bulletDatabase.get(id);
     }
+
+    public static void removeBullet(int id){
+        bulletDatabase.remove(id);
+    }
 }

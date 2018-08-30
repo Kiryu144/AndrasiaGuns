@@ -5,7 +5,12 @@ import net.andrasia.kiryu144.andrasiaguns.event.PlayerShotEntityEvent;
 import net.andrasia.kiryu144.andrasiaguns.event.PlayerShotKilledEvent;
 import net.andrasia.kiryu144.andrasiaguns.external.NBTEditor;
 import net.andrasia.kiryu144.andrasiaguns.input.Keyboard;
+import net.andrasia.kiryu144.kiryucore.console.KiryuLogger;
+import net.minecraft.server.v1_13_R1.IChatBaseComponent;
+import net.minecraft.server.v1_13_R1.PacketPlayOutTitle;
 import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.v1_13_R1.entity.CraftPlayer;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -40,6 +45,16 @@ public class GunManager implements Listener {
         }
     }
 
+    public static int getAmount() {
+        return guns.getGuns().size();
+    }
+
+    public static void handleReload() {
+        for(Player p : Bukkit.getOnlinePlayers()){
+            onPlayerJoin(new PlayerJoinEvent(p, ""));
+        }
+    }
+
     public static void addGun(Gun gun){
         guns.put(gun.getId(), gun);
     }
@@ -64,6 +79,15 @@ public class GunManager implements Listener {
 
     public static boolean isPlayerScoped(Player p){
         return scoped.get(p);
+    }
+
+    @EventHandler
+    private static void onPlayerDrop(PlayerDropItemEvent e){
+        Gun gun = getGun(e.getItemDrop().getItemStack());
+        if(gun != null){
+            e.setCancelled(true);
+            gun.initiateReload(e.getPlayer());
+        }
     }
 
     @EventHandler
@@ -93,11 +117,28 @@ public class GunManager implements Listener {
     }
 
     @EventHandler
+    private static void onProjectileHit(ProjectileHitEvent e){
+        if(e.getEntity().getType() == EntityType.SNOWBALL){
+            Projectile snowball = e.getEntity();
+            if(snowball.getCustomName() != null){
+                int id = Integer.valueOf(snowball.getCustomName());
+                BulletData bullet = BulletDatabase.getBullet(id);
+                if(e.getHitEntity() != null) {
+                    ((LivingEntity) e.getHitEntity()).damage(bullet.getDamage(), bullet.getShooter());
+                }
+
+                BulletDatabase.removeBullet(id);
+            }
+        }
+    }
+
+    @EventHandler
     private static void onPlayerJoin(PlayerJoinEvent e){
         scoped.put(e.getPlayer(), false);
         for(Gun gun : guns.getGuns()){
             gun.registerPlayer(e.getPlayer());
         }
+        Keyboard.registerPlayer(e.getPlayer());
     }
 
     @EventHandler
@@ -106,137 +147,18 @@ public class GunManager implements Listener {
         for(Gun gun : guns.getGuns()){
             gun.unregisterPlayer(e.getPlayer());
         }
+        Keyboard.unregisterPlayer(e.getPlayer());
+    }
+
+    @EventHandler
+    public static void switchSlots(PlayerItemHeldEvent e){
+        Gun gun = getGun(e.getPlayer().getInventory().getItem(e.getNewSlot()));
+        if(gun != null){
+            gun.showAmmo(e.getPlayer());
+        }
     }
 
 }
-
-
-
-
-
-
-
-
-/*
-public class GunManager implements Listener {
-    private static GunContainer guns = new GunContainer();
-    private static HashMap<Player, Boolean> scoped = new HashMap<>();
-
-    public GunManager() {
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(Main.instance, ()->{
-            for(Player p : Bukkit.getOnlinePlayers()){
-                if(Keyboard.isPressed(p)){
-                    ItemStack item = p.getInventory().getItemInMainHand();
-                    if(item != null){
-                        Object id = NBTEditor.getItemTag(item, "gunid");
-                        if(id != null){
-                            guns.get((Integer) id).handleShooting(p);
-                        }
-                    }
-                }
-            }
-        }, 0, 1);
-    }
-
-    public static void addGun(Gun gun){
-        guns.put(gun.getId(), gun);
-    }
-
-    public static GunContainer getGunContainer() {
-        return guns;
-    }
-
-    public static boolean isScoped(Player p){
-        return scoped.get(p);
-    }
-
-    @EventHandler
-    private static void onHit(ProjectileHitEvent e){
-        Projectile projectile = e.getEntity();
-        LivingEntity victim = (e.getHitEntity() instanceof LivingEntity) ? (LivingEntity) e.getHitEntity() : null;
-
-        if(projectile.getCustomName() != null && victim != null){
-            BulletData bullet = BulletDatabase.getBullet(Integer.valueOf(projectile.getCustomName()));
-            PlayerShotEntityEvent event = new PlayerShotEntityEvent(bullet.getShooter(), victim, bullet.getGun(), bullet);
-            Bukkit.getServer().getPluginManager().callEvent(event);
-
-            if(!event.isCancelled()){
-                victim.damage(bullet.getDamage(), bullet.getShooter());
-            }
-        }
-    }
-
-    @EventHandler
-    private static void onPlayerDeath(PlayerDeathEvent e){
-        if(e.getEntity().getLastDamageCause().getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK){
-            ItemStack item = e.getEntity().getKiller().getInventory().getItemInMainHand();
-            Object gunID = (item != null) ? NBTEditor.getItemTag(item, "gunid") : null;
-            if(gunID != null) {
-                Bukkit.getServer().getPluginManager().callEvent(new PlayerShotKilledEvent(e.getEntity(), e.getEntity().getKiller(), GunManager.getGunContainer().get((Integer)gunID)));
-            }
-        }
-    }
-
-    @EventHandler
-    private static void onPlayerInteract(PlayerInteractEvent e){
-        if((e.getAction() == Action.LEFT_CLICK_AIR || e.getAction() == Action.LEFT_CLICK_BLOCK) && e.getHand() == EquipmentSlot.HAND ){
-            ItemStack item = e.getItem();
-            Gun gun = null;
-            if(item != null){
-                Object gunId = NBTEditor.getItemTag(item, "gunid");
-                if(gunId != null){
-                    gun = getGunContainer().get((Integer) gunId);
-                }
-            }
-
-            if(gun == null){
-                return;
-            }
-
-            if(!scoped.containsKey(e.getPlayer())){
-                scoped.put(e.getPlayer(), false);
-            }
-
-            boolean isScoped = !scoped.get(e.getPlayer());
-            scoped.put(e.getPlayer(), isScoped);
-            if(isScoped){
-                e.getPlayer().getInventory().setItemInMainHand(gun.getTemplateItemAimed());
-            }else{
-                e.getPlayer().getInventory().setItemInMainHand(gun.getTemplateItemNormal());
-            }
-        }
-    }
-
-    @EventHandler
-    private static void onPlayerJoin(PlayerJoinEvent e){
-        scoped.put(e.getPlayer(), false);
-    }
-
-    @EventHandler
-    private static void onPlayerLeave(PlayerQuitEvent e){
-        scoped.remove(e.getPlayer());
-    }
-
-    @EventHandler
-    private static void onPlayerDrop(PlayerDropItemEvent e){
-
-    }
-
-}*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
